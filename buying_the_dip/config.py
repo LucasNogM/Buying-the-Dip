@@ -99,6 +99,8 @@ class OriginalBTDConfig(BaseStrategyConfig):
     """Original buying-the-dip settings."""
 
     enabled: bool = True
+    implementable_enabled: bool = True
+    implementable_drawdown_threshold_pct: float = 0.05
 
 
 @dataclass(slots=True)
@@ -108,6 +110,9 @@ class PeriodicBTDConfig(BaseStrategyConfig):
     enabled: bool = True
     period_days: int = 30
     anchor: str = "end"
+    implementable_enabled: bool = True
+    implementable_drawdown_threshold_pct: float = 0.05
+    implementable_fallback_to_window_end: bool = True
 
 
 @dataclass(slots=True)
@@ -137,8 +142,8 @@ class SimulationConfig:
     contribution_amount: float = 1.0
     aggregations: dict[str, list[str]] = field(
         default_factory=lambda: {
-            "annual_alpha": ["mean", "median"],
-            "final_relative_advantage": ["mean", "median"],
+            "annual_alpha_theoretical": ["mean", "median"],
+            "annual_alpha_implementable": ["mean", "median"],
         }
     )
 
@@ -154,6 +159,8 @@ class ReportConfig:
     include_original_btd: bool = True
     include_periodic_btd: bool = True
     include_simulation: bool = True
+    include_implementable_analysis: bool = True
+    include_consistency_analysis: bool = True
     max_simulation_rows: int = 12
     theme: str = "dark"
     include_overview_chart: bool = True
@@ -185,6 +192,7 @@ class AppConfig:
     @property
     def output_directory(self) -> Path:
         """Return the resolved project output directory."""
+
         return Path(self.project.output_directory)
 
 
@@ -194,6 +202,7 @@ class ConfigError(ValueError):
 
 def load_config(config_path: str | Path) -> AppConfig:
     """Load the application configuration from YAML."""
+
     path = Path(config_path)
     if not path.exists():
         raise FileNotFoundError(f"Configuration file not found: {path}")
@@ -207,12 +216,8 @@ def load_config(config_path: str | Path) -> AppConfig:
     strategies_section = raw_config.get("strategies", {})
     strategies = StrategiesConfig(
         dca=DCAConfig(**strategies_section.get("dca", {})),
-        btd_original=OriginalBTDConfig(
-            **strategies_section.get("btd_original", {})
-        ),
-        btd_periodic=PeriodicBTDConfig(
-            **strategies_section.get("btd_periodic", {})
-        ),
+        btd_original=OriginalBTDConfig(**strategies_section.get("btd_original", {})),
+        btd_periodic=PeriodicBTDConfig(**strategies_section.get("btd_periodic", {})),
     )
     simulation = SimulationConfig(
         **_normalize_simulation_config(raw_config.get("simulation", {}))
@@ -235,6 +240,7 @@ def load_config(config_path: str | Path) -> AppConfig:
 
 def _normalize_simulation_config(raw_config: dict[str, Any]) -> dict[str, Any]:
     """Normalize simulation range inputs into explicit lists."""
+
     normalized = dict(raw_config)
     if "horizons_years" in normalized:
         normalized["horizons_years"] = _expand_numeric_sequence(
@@ -249,6 +255,7 @@ def _normalize_simulation_config(raw_config: dict[str, Any]) -> dict[str, Any]:
 
 def _expand_numeric_sequence(value: Any) -> list[int]:
     """Expand a numeric list or range-like mapping into a list of integers."""
+
     if isinstance(value, list):
         return [int(item) for item in value]
 
@@ -275,6 +282,7 @@ def _expand_numeric_sequence(value: Any) -> list[int]:
 
 def _validate_config(config: AppConfig) -> None:
     """Validate the loaded application configuration."""
+
     if not config.indices:
         raise ConfigError("At least one index source must be defined in 'indices'.")
 
@@ -289,17 +297,8 @@ def _validate_config(config: AppConfig) -> None:
     _validate_anchor(config.strategies.dca.anchor, "strategies.dca.anchor")
     _validate_period(config.strategies.dca.period, "strategies.dca.period")
 
-    _validate_strategy_config(config.strategies.btd_original)
-
-    _validate_strategy_config(config.strategies.btd_periodic)
-    if config.strategies.btd_periodic.period_days <= 0:
-        raise ConfigError(
-            "'strategies.btd_periodic.period_days' must be a positive integer."
-        )
-    _validate_anchor(
-        config.strategies.btd_periodic.anchor,
-        "strategies.btd_periodic.anchor",
-    )
+    _validate_original_btd_config(config.strategies.btd_original)
+    _validate_periodic_btd_config(config.strategies.btd_periodic)
 
     _validate_simulation_config(config.simulation)
     _validate_report_config(config.report)
@@ -308,6 +307,7 @@ def _validate_config(config: AppConfig) -> None:
 
 def _validate_source_config(source: IndexSourceConfig) -> None:
     """Validate one index source definition."""
+
     source.source_mode = source.source_mode.strip().lower()
     if source.source_mode not in ALLOWED_SOURCE_MODES:
         raise ConfigError(
@@ -339,27 +339,30 @@ def _validate_source_config(source: IndexSourceConfig) -> None:
                 f"Index source '{source.name}' requires a non-empty path when "
                 "source_mode is 'file'."
             )
-    else:
-        if not source.symbol or not source.symbol.strip():
+        return
+
+    if not source.symbol or not source.symbol.strip():
+        raise ConfigError(
+            f"Index source '{source.name}' requires a non-empty symbol when using "
+            "an API source mode."
+        )
+
+    resolved_providers = _resolve_provider_sequence(source)
+    for provider in resolved_providers:
+        if provider not in ALLOWED_DATA_PROVIDERS:
             raise ConfigError(
-                f"Index source '{source.name}' requires a non-empty symbol when "
-                "using an API source mode."
+                f"Index source '{source.name}' uses unsupported provider "
+                f"'{provider}'."
             )
-        resolved_providers = _resolve_provider_sequence(source)
-        for provider in resolved_providers:
-            if provider not in ALLOWED_DATA_PROVIDERS:
-                raise ConfigError(
-                    f"Index source '{source.name}' uses unsupported provider "
-                    f"'{provider}'."
-                )
-        if source.cache_path and not source.cache_path.lower().endswith(".csv"):
-            raise ConfigError(
-                f"Index source '{source.name}' cache_path must end with '.csv'."
-            )
+    if source.cache_path and not source.cache_path.lower().endswith(".csv"):
+        raise ConfigError(
+            f"Index source '{source.name}' cache_path must end with '.csv'."
+        )
 
 
 def _resolve_provider_sequence(source: IndexSourceConfig) -> list[str]:
     """Return the ordered provider list for one source."""
+
     if source.provider_priority:
         return [provider.strip().lower() for provider in source.provider_priority]
     if source.provider:
@@ -369,11 +372,11 @@ def _resolve_provider_sequence(source: IndexSourceConfig) -> list[str]:
 
 def _validate_data_api_config(config: DataAPIConfig) -> None:
     """Validate the shared data API settings."""
+
     config.provider = config.provider.strip().lower()
     if config.provider not in ALLOWED_DATA_PROVIDERS:
-        raise ConfigError(
-            f"Unsupported data_api.provider '{config.provider}'."
-        )
+        raise ConfigError(f"Unsupported data_api.provider '{config.provider}'.")
+
     config.provider_priority = [
         provider.strip().lower()
         for provider in config.provider_priority
@@ -386,6 +389,7 @@ def _validate_data_api_config(config: DataAPIConfig) -> None:
             raise ConfigError(
                 f"Unsupported provider in data_api.provider_priority: '{provider}'."
             )
+
     if config.timeout_seconds <= 0:
         raise ConfigError("'data_api.timeout_seconds' must be positive.")
     if config.max_workers <= 0:
@@ -393,17 +397,11 @@ def _validate_data_api_config(config: DataAPIConfig) -> None:
     if config.max_retries < 0:
         raise ConfigError("'data_api.max_retries' cannot be negative.")
     if config.retry_backoff_seconds < 0:
-        raise ConfigError(
-            "'data_api.retry_backoff_seconds' cannot be negative."
-        )
+        raise ConfigError("'data_api.retry_backoff_seconds' cannot be negative.")
     if config.retry_jitter_seconds < 0:
-        raise ConfigError(
-            "'data_api.retry_jitter_seconds' cannot be negative."
-        )
+        raise ConfigError("'data_api.retry_jitter_seconds' cannot be negative.")
     if config.request_pause_seconds < 0:
-        raise ConfigError(
-            "'data_api.request_pause_seconds' cannot be negative."
-        )
+        raise ConfigError("'data_api.request_pause_seconds' cannot be negative.")
     if not config.period.strip():
         raise ConfigError("'data_api.period' must not be empty.")
     if not config.interval.strip():
@@ -412,17 +410,52 @@ def _validate_data_api_config(config: DataAPIConfig) -> None:
 
 def _validate_strategy_config(config: BaseStrategyConfig) -> None:
     """Validate the shared strategy configuration attributes."""
+
     if config.cash_mode not in ALLOWED_CASH_MODES:
         raise ConfigError(
-            f"Unsupported cash mode '{config.cash_mode}'. "
-            f"Allowed values: {sorted(ALLOWED_CASH_MODES)}."
+            f"Unsupported cash mode '{config.cash_mode}'. Allowed values: "
+            f"{sorted(ALLOWED_CASH_MODES)}."
         )
     if config.contribution_amount <= 0:
         raise ConfigError("Contribution amount must be positive.")
     if config.cash_frequency not in ALLOWED_CALENDAR_FREQUENCIES:
         raise ConfigError(
-            f"Unsupported cash frequency '{config.cash_frequency}'. "
-            f"Allowed values: {sorted(ALLOWED_CALENDAR_FREQUENCIES)}."
+            f"Unsupported cash frequency '{config.cash_frequency}'. Allowed values: "
+            f"{sorted(ALLOWED_CALENDAR_FREQUENCIES)}."
+        )
+
+
+def _validate_original_btd_config(config: OriginalBTDConfig) -> None:
+    """Validate the original BtD settings."""
+
+    _validate_strategy_config(config)
+    _validate_drawdown_threshold(
+        config.implementable_drawdown_threshold_pct,
+        "strategies.btd_original.implementable_drawdown_threshold_pct",
+    )
+
+
+def _validate_periodic_btd_config(config: PeriodicBTDConfig) -> None:
+    """Validate the periodic BtD settings."""
+
+    _validate_strategy_config(config)
+    if config.period_days <= 0:
+        raise ConfigError(
+            "'strategies.btd_periodic.period_days' must be a positive integer."
+        )
+    _validate_anchor(config.anchor, "strategies.btd_periodic.anchor")
+    _validate_drawdown_threshold(
+        config.implementable_drawdown_threshold_pct,
+        "strategies.btd_periodic.implementable_drawdown_threshold_pct",
+    )
+
+
+def _validate_drawdown_threshold(value: float, field_name: str) -> None:
+    """Validate an implementable BtD drawdown threshold."""
+
+    if not 0.0 < float(value) < 1.0:
+        raise ConfigError(
+            f"'{field_name}' must be strictly between 0 and 1."
         )
 
 
@@ -431,13 +464,14 @@ def _parse_optional_date(
     field_name: str,
 ) -> pd.Timestamp | None:
     """Parse one optional ISO-style date string for config validation."""
+
     if value is None:
         return None
     if not str(value).strip():
         raise ConfigError(f"'{field_name}' must not be empty when provided.")
     try:
         return pd.Timestamp(value).normalize()
-    except Exception as error:  # pragma: no cover - validation helper.
+    except Exception as error:  # pragma: no cover
         raise ConfigError(
             f"'{field_name}' must be a valid date string, for example '1950-01-01'."
         ) from error
@@ -445,15 +479,17 @@ def _parse_optional_date(
 
 def _validate_anchor(value: str, field_name: str) -> None:
     """Validate a strategy or simulation anchor value."""
+
     if value not in ALLOWED_ANCHORS:
         raise ConfigError(
-            f"Unsupported anchor '{value}' for '{field_name}'. "
-            f"Allowed values: {sorted(ALLOWED_ANCHORS)}."
+            f"Unsupported anchor '{value}' for '{field_name}'. Allowed values: "
+            f"{sorted(ALLOWED_ANCHORS)}."
         )
 
 
 def _validate_period(value: str | int, field_name: str) -> None:
     """Validate an investment period value."""
+
     if isinstance(value, int):
         if value <= 0:
             raise ConfigError(f"'{field_name}' must be a positive integer.")
@@ -467,14 +503,13 @@ def _validate_period(value: str | int, field_name: str) -> None:
 
 def _validate_simulation_config(config: SimulationConfig) -> None:
     """Validate the simulation sweep configuration."""
+
     if config.window_count <= 0:
         raise ConfigError("'simulation.window_count' must be positive.")
     if not config.horizons_years:
         raise ConfigError("'simulation.horizons_years' cannot be empty.")
     if not config.contribution_intervals_days:
-        raise ConfigError(
-            "'simulation.contribution_intervals_days' cannot be empty."
-        )
+        raise ConfigError("'simulation.contribution_intervals_days' cannot be empty.")
     if any(value <= 0 for value in config.horizons_years):
         raise ConfigError("All simulation horizons must be positive.")
     if any(value <= 0 for value in config.contribution_intervals_days):
@@ -482,8 +517,8 @@ def _validate_simulation_config(config: SimulationConfig) -> None:
     _validate_anchor(config.anchor, "simulation.anchor")
     if config.cash_mode not in ALLOWED_CASH_MODES:
         raise ConfigError(
-            f"Unsupported simulation cash mode '{config.cash_mode}'. "
-            f"Allowed values: {sorted(ALLOWED_CASH_MODES)}."
+            f"Unsupported simulation cash mode '{config.cash_mode}'. Allowed values: "
+            f"{sorted(ALLOWED_CASH_MODES)}."
         )
     if config.cash_frequency not in ALLOWED_CALENDAR_FREQUENCIES:
         raise ConfigError(
@@ -495,6 +530,7 @@ def _validate_simulation_config(config: SimulationConfig) -> None:
 
 def _validate_report_config(config: ReportConfig) -> None:
     """Validate the report settings."""
+
     if config.table_precision < 0:
         raise ConfigError("'report.table_precision' cannot be negative.")
     if config.figure_dpi <= 0:
@@ -504,21 +540,20 @@ def _validate_report_config(config: ReportConfig) -> None:
     config.theme = config.theme.strip().lower()
     if config.theme not in ALLOWED_REPORT_THEMES:
         raise ConfigError(
-            f"Unsupported report theme '{config.theme}'. "
-            f"Allowed values: {sorted(ALLOWED_REPORT_THEMES)}."
+            f"Unsupported report theme '{config.theme}'. Allowed values: "
+            f"{sorted(ALLOWED_REPORT_THEMES)}."
         )
     if not 50.0 <= config.advantage_clip_percentile <= 100.0:
         raise ConfigError(
             "'report.advantage_clip_percentile' must be between 50 and 100."
         )
     if config.advantage_min_limit_pct <= 0:
-        raise ConfigError(
-            "'report.advantage_min_limit_pct' must be positive."
-        )
+        raise ConfigError("'report.advantage_min_limit_pct' must be positive.")
 
 
 def _validate_export_config(config: ExportConfig) -> None:
     """Validate the export settings."""
+
     if config.format not in ALLOWED_EXPORT_FORMATS:
         raise ConfigError(
             f"Unsupported export format '{config.format}'. Allowed values: "

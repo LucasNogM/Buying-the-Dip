@@ -1,1 +1,7 @@
 /_old
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+__pycache__

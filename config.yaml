@@ -105,6 +105,8 @@ strategies:
 
   btd_original:
     enabled: true
+    implementable_enabled: true
+    implementable_drawdown_threshold_pct: 0.05
     cash_mode: "linear"
     contribution_amount: 1.0
     cash_frequency: "monthly"
@@ -113,6 +115,9 @@ strategies:
     enabled: true
     period_days: 30
     anchor: "end"
+    implementable_enabled: true
+    implementable_drawdown_threshold_pct: 0.05
+    implementable_fallback_to_window_end: true
     cash_mode: "periodic"
     contribution_amount: 1.0
     cash_frequency: "monthly"
@@ -127,8 +132,8 @@ simulation:
   contribution_amount: 1.0
   cash_frequency: "monthly"
   aggregations:
-    annual_alpha: ["mean", "median"]
-    final_relative_advantage: ["mean", "median"]
+    annual_alpha_theoretical: ["mean", "median"]
+    annual_alpha_implementable: ["mean", "median"]
 
 report:
   output_directory: "./outputs/reports"
@@ -138,6 +143,8 @@ report:
   include_original_btd: true
   include_periodic_btd: true
   include_simulation: true
+  include_implementable_analysis: true
+  include_consistency_analysis: true
   max_simulation_rows: 12
   theme: "dark"
   include_overview_chart: true

@@ -1,10 +1,12 @@
 # Buying the Dip Analysis
 
-A Python project to compare three index-investing approaches across multiple market indices in a single run:
+A Python project to compare DCA with both **theoretical** and **implementable** Buying the Dip (BtD) approaches across multiple market indices in a single run:
 
 - **DCA** (Dollar-Cost Averaging)
-- **BtD Original** (buy the local minimum inside each completed all-time-high reset segment)
-- **BtD Periodic** (buy the local minimum inside each fixed investment window)
+- **BtD Original (Theoretical)**: buys the local minimum inside each completed all-time-high reset segment
+- **BtD Original (Implementable)**: buys the first drawdown after an all-time high once a configurable threshold is reached
+- **BtD Periodic (Theoretical)**: buys the local minimum inside each fixed investment window
+- **BtD Periodic (Implementable)**: buys the first in-window drawdown once a configurable threshold is reached
 
 The codebase is fully refactored into classes, uses YAML configuration, downloads data from an API first, caches it as CSV, falls back to local cache when needed, exports raw analytical outputs, and generates dark-theme HTML reports:
 
@@ -21,6 +23,8 @@ The codebase is fully refactored into classes, uses YAML configuration, download
 - [Strategy definitions](#strategy-definitions)
 - [Methodology at a glance](#methodology-at-a-glance)
 - [Important interpretation caveat](#important-interpretation-caveat)
+- [BtD theoretical vs implementable](#btd-theoretical-vs-implementable)
+- [Consistency of advantage](#consistency-of-advantage)
 - [Project structure](#project-structure)
 - [Requirements](#requirements)
 - [Installation](#installation)
@@ -69,24 +73,41 @@ Examples:
 
 The schedule is configurable in `strategies.dca.period` and `strategies.dca.anchor`.
 
-### 2. BtD Original
+### 2. BtD Original (Theoretical)
 
-The original Buying the Dip implementation works like this:
+The theoretical original Buying the Dip implementation works like this:
 
 1. compute the running all-time high;
 2. split the price series into segments delimited by new highs;
 3. in each completed segment, find the **lowest close**;
 4. allocate the available capital at that lowest close.
 
-### 3. BtD Periodic
+### 3. BtD Original (Implementable)
 
-The periodic Buying the Dip implementation works like this:
+The implementable original BtD rule uses only information available at the decision date:
+
+1. compute the most recent all-time high;
+2. wait for the first close that is below that high by at least a configurable drawdown threshold;
+3. allocate on that first threshold hit.
+
+### 4. BtD Periodic (Theoretical)
+
+The theoretical periodic Buying the Dip implementation works like this:
 
 1. split time into fixed windows such as 15, 30, 45, 60, 90, or 120 days;
 2. inside each window, find the **lowest close**;
 3. allocate the available capital at that lowest close.
 
-This project treats DCA as the **baseline** and measures the two BtD variants relative to it.
+### 5. BtD Periodic (Implementable)
+
+The implementable periodic BtD rule works like this:
+
+1. split time into fixed windows such as 15, 30, 45, 60, 90, or 120 days;
+2. track the running peak inside each window;
+3. allocate on the first day where the drawdown from that running peak reaches the configured threshold;
+4. optionally fall back to the end of the window if the threshold is never hit.
+
+This project treats DCA as the **baseline** and measures all BtD variants relative to it.
 
 ---
 
@@ -159,15 +180,18 @@ Definitions:
 - **Investment period**: the spacing between contributions. Example: a 30-day period means new capital is made available every 30 days.
 - **Investment horizon**: the total length of one simulation window. Example: a 5-year horizon means the strategy is evaluated from a chosen start date through the next five years.
 
-For each combination, the code samples multiple windows across the full history and aggregates results such as mean annual alpha.
+For each combination, the code samples multiple windows across the full history and aggregates results such as mean annual alpha, win rate, and alpha percentiles.
 
 ---
 
 ## Important interpretation caveat
 
-Both BtD implementations use **ex-post minima**.
+The project now distinguishes between **theoretical** BtD and **implementable** BtD.
 
-That means the code identifies the minimum price **after the full segment or full window is known**. This makes the BtD outputs useful as an analytical timing benchmark, but not as a directly live-tradable rule in the exact same form.
+- **Theoretical BtD** uses ex-post minima. It identifies the minimum price **after the full segment or full window is known**.
+- **Implementable BtD** uses only information available at the decision date and therefore behaves like a live-executable rule.
+
+This makes the theoretical outputs useful as analytical timing benchmarks, while the implementable outputs are a more realistic reference for deployable rules.
 
 In addition, the project does **not** model:
 
@@ -179,6 +203,38 @@ In addition, the project does **not** model:
 - order execution delays.
 
 So the BtD results should be interpreted as a clean comparative research exercise rather than a production trading system.
+
+---
+
+## BtD theoretical vs implementable
+
+The reports include a dedicated comparison between the hindsight and live-executable versions of BtD.
+
+The key metric is the **implementation gap**:
+
+```text
+implementation gap = implementable annualized return - theoretical annualized return
+```
+
+Interpretation:
+
+- negative implementation gap: the live-executable rule gave back part of the hindsight advantage;
+- zero implementation gap: the implementable rule matched the theoretical rule;
+- positive implementation gap: the implementable rule outperformed the hindsight benchmark, which is rare but possible in some samples.
+
+---
+
+## Consistency of advantage
+
+The simulation module no longer reports only average alpha. It also measures whether the advantage is **consistent** across many start dates, horizons, and investment periods.
+
+The reports now include:
+
+- **win rate**: the share of simulation windows where annual alpha is positive;
+- **alpha distribution**: p10 / median / p90 for annual alpha;
+- side-by-side consistency summaries for the theoretical and implementable periodic BtD rules.
+
+This is useful because a strategy can have a positive average alpha but still rely on a small number of unusually favorable windows.
 
 ---
 
@@ -209,10 +265,11 @@ buying_the_dip_delivery/
 - `config.py`: dataclasses, validation, YAML loading.
 - `data_loader.py`: API downloads, local file loading, CSV cache fallback.
 - `scheduling.py`: contribution schedules and fixed-window labels.
-- `strategies.py`: DCA, original BtD, and periodic BtD signal generation.
+- `strategies.py`: DCA plus theoretical and implementable BtD signal generation.
 - `portfolio.py`: capital allocation and wealth backtesting logic.
 - `analytics.py`: orchestration, comparisons, simulation sweep, raw exports.
-- `reporting.py`: main HTML hub and per-index HTML reports.
+- `reporting.py`: base HTML reporting implementation.
+- `reporting_enhanced.py`: implementability and consistency report extensions.
 - `main.py`: CLI entry point.
 
 ---

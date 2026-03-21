@@ -280,7 +280,7 @@ h4 {
     <div class="container">
         <section class="panel hero">
             <h1>Buying the Dip Analysis</h1>
-            <p class="muted">Generated at 2026-03-21 21:28:39 UTC.</p>
+            <p class="muted">Generated at 2026-03-21 22:36:06 UTC.</p>
             <div class="metrics-grid"><div class="metric-card"><div class="label">Indices</div><div class="value">7</div></div><div class="metric-card"><div class="label">Average DCA annualized return</div><div class="value">5.05%</div></div><div class="metric-card"><div class="label">Average original BtD annualized return</div><div class="value">5.12%</div></div><div class="metric-card"><div class="label">Average periodic BtD annualized return</div><div class="value">5.14%</div></div></div>
         </section>
 
@@ -465,6 +465,176 @@ h4 {
 
         <section class="panel">
             <div class="section-title-row">
+                <h2>BtD theoretical vs implementable</h2>
+            </div>
+            <p class="muted">
+                Full-sample comparison between hindsight BtD and live-executable BtD rules.
+                The implementation gap is the implementable annualized return minus the
+                corresponding theoretical annualized return.
+            </p>
+            <table border="1" class="dataframe table comparison-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>Index</th>
+      <th>Original theoretical annualized return</th>
+      <th>Original implementable annualized return</th>
+      <th>Original implementation gap</th>
+      <th>Periodic theoretical annualized return</th>
+      <th>Periodic implementable annualized return</th>
+      <th>Periodic implementation gap</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Ibovespa</td>
+      <td>7.38%</td>
+      <td>6.03%</td>
+      <td>-1.35%</td>
+      <td>7.23%</td>
+      <td>6.97%</td>
+      <td>-0.26%</td>
+    </tr>
+    <tr>
+      <td>S&P 500</td>
+      <td>5.43%</td>
+      <td>5.27%</td>
+      <td>-0.16%</td>
+      <td>5.45%</td>
+      <td>5.41%</td>
+      <td>-0.04%</td>
+    </tr>
+    <tr>
+      <td>Dow Jones</td>
+      <td>4.97%</td>
+      <td>4.77%</td>
+      <td>-0.19%</td>
+      <td>4.96%</td>
+      <td>4.92%</td>
+      <td>-0.04%</td>
+    </tr>
+    <tr>
+      <td>Nasdaq Composite</td>
+      <td>7.54%</td>
+      <td>7.31%</td>
+      <td>-0.23%</td>
+      <td>7.53%</td>
+      <td>7.49%</td>
+      <td>-0.04%</td>
+    </tr>
+    <tr>
+      <td>STOXX Europe 600</td>
+      <td>2.43%</td>
+      <td>1.75%</td>
+      <td>-0.67%</td>
+      <td>2.47%</td>
+      <td>2.47%</td>
+      <td>-0.00%</td>
+    </tr>
+    <tr>
+      <td>Nikkei 225</td>
+      <td>4.77%</td>
+      <td>4.51%</td>
+      <td>-0.26%</td>
+      <td>4.82%</td>
+      <td>4.75%</td>
+      <td>-0.07%</td>
+    </tr>
+    <tr>
+      <td>Shanghai Composite</td>
+      <td>3.30%</td>
+      <td>1.63%</td>
+      <td>-1.68%</td>
+      <td>3.48%</td>
+      <td>3.25%</td>
+      <td>-0.23%</td>
+    </tr>
+  </tbody>
+</table>
+        </section>
+
+        <section class="panel">
+            <div class="section-title-row">
+                <h2>Consistency of advantage</h2>
+            </div>
+            <p class="muted">
+                Simulation-based robustness summary for periodic BtD versus DCA. Win rate is the
+                share of simulation windows with positive annual alpha, and the alpha-distribution
+                columns report p10 / median / p90.
+            </p>
+            <table border="1" class="dataframe table comparison-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>Index</th>
+      <th>Simulation windows</th>
+      <th>Theoretical win rate</th>
+      <th>Theoretical alpha distribution</th>
+      <th>Implementable win rate</th>
+      <th>Implementable alpha distribution</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Ibovespa</td>
+      <td>390</td>
+      <td>100.00%</td>
+      <td>0.41% / 1.17% / 4.73%</td>
+      <td>48.72%</td>
+      <td>-0.28% / -0.00% / 0.45%</td>
+    </tr>
+    <tr>
+      <td>S&P 500</td>
+      <td>390</td>
+      <td>100.00%</td>
+      <td>0.21% / 0.62% / 2.32%</td>
+      <td>37.18%</td>
+      <td>-0.17% / -0.02% / 0.16%</td>
+    </tr>
+    <tr>
+      <td>Dow Jones</td>
+      <td>390</td>
+      <td>100.00%</td>
+      <td>0.21% / 0.60% / 2.25%</td>
+      <td>39.23%</td>
+      <td>-0.18% / -0.01% / 0.15%</td>
+    </tr>
+    <tr>
+      <td>Nasdaq Composite</td>
+      <td>390</td>
+      <td>100.00%</td>
+      <td>0.25% / 0.73% / 2.50%</td>
+      <td>33.85%</td>
+      <td>-0.29% / -0.02% / 0.21%</td>
+    </tr>
+    <tr>
+      <td>STOXX Europe 600</td>
+      <td>390</td>
+      <td>86.15%</td>
+      <td>0.00% / 0.16% / 0.89%</td>
+      <td>10.77%</td>
+      <td>-0.12% / 0.00% / 0.01%</td>
+    </tr>
+    <tr>
+      <td>Nikkei 225</td>
+      <td>390</td>
+      <td>100.00%</td>
+      <td>0.30% / 0.88% / 3.67%</td>
+      <td>35.13%</td>
+      <td>-0.47% / -0.04% / 0.16%</td>
+    </tr>
+    <tr>
+      <td>Shanghai Composite</td>
+      <td>390</td>
+      <td>100.00%</td>
+      <td>0.33% / 1.01% / 5.10%</td>
+      <td>42.56%</td>
+      <td>-0.50% / -0.01% / 0.30%</td>
+    </tr>
+  </tbody>
+</table>
+        </section>
+
+        <section class="panel">
+            <div class="section-title-row">
                 <h2>Methodology</h2>
             </div>
             
@@ -472,110 +642,97 @@ h4 {
     <article class="method-card">
         <h3>1. Data and preprocessing</h3>
         <p>
-            Each index is downloaded with the API-first loader using the maximum
-            available daily history. When Yahoo Finance provides adjusted close,
-            that series is preferred; otherwise the regular close is used. Dates
-            are normalized to one row per day, duplicates are removed, and only
-            positive prices are kept. The downloaded history is then saved to CSV
-            so it can be reused as a local fallback in a later run.
+            Each index is downloaded with the API-first loader using the maximum available
+            daily history that the selected providers expose. The raw history is cached as CSV,
+            cleaned, sorted by date, deduplicated, and filtered to positive prices before the
+            analysis begins.
         </p>
     </article>
 
     <article class="method-card">
-        <h3>2. Main strategies</h3>
+        <h3>2. Baseline strategy</h3>
         <p>
-            <strong>DCA</strong> contributes on a fixed schedule defined in the
-            configuration. In the current setup, the main backtest uses
-            <strong>monthly</strong> contributions anchored at
-            <strong>end</strong>.
+            <strong>DCA</strong> contributes on a fixed schedule defined in the configuration.
+            In the current setup, the main backtest uses <strong>monthly</strong>
+            contributions anchored at <strong>end</strong>.
         </p>
+    </article>
+
+    <article class="method-card">
+        <h3>3. Theoretical BtD</h3>
         <p>
-            <strong>Original BtD</strong> splits the series into segments delimited by
-            new all-time highs and allocates at the lowest close inside each completed
-            segment.
-        </p>
-        <p>
-            <strong>Periodic BtD</strong> splits time into fixed windows and allocates at
-            the lowest close inside each window. In the main backtest, the default
-            window is <strong>30 days</strong>.
+            <strong>Original BtD (theoretical)</strong> waits for the full segment between two
+            all-time highs to be known and then allocates at that segment's lowest close.
+            <strong>Periodic BtD (theoretical)</strong> does the same inside fixed windows; in the
+            main backtest the default window is <strong>30 days</strong>.
         </p>
         <div class="method-example">
-            Example: if a 30-day window has closes 100, 98, 95, 97, and 99,
-            periodic BtD allocates on the 95 close, while DCA allocates on its
-            scheduled day regardless of where the minimum occurred.
+            These rules are intentionally optimistic because they pick the minimum close only after
+            the whole segment or window is already complete.
         </div>
     </article>
 
     <article class="method-card">
-        <h3>3. Wealth, return, and annualization</h3>
+        <h3>4. Implementable BtD</h3>
         <p>
-            Portfolio wealth is the sum of the invested component that compounds with
-            the index and the idle cash that has not yet been deployed. Final return is
-            the visible portfolio wealth divided by the capital made available over time,
-            minus one.
+            <strong>Original BtD (implementable)</strong> buys on the <em>first</em> day after a new
+            all-time high where the drawdown versus that high reaches
+            <strong>5.0%</strong> or more.
+        </p>
+        <p>
+            <strong>Periodic BtD (implementable)</strong> buys on the <em>first</em> day inside each
+            window where the drawdown from the running in-window peak reaches
+            <strong>5.0%</strong> or more. If that threshold is never hit,
+            the strategy falls back to the window end when
+            <code>implementable_fallback_to_window_end: true</code>.
+        </p>
+    </article>
+
+    <article class="method-card">
+        <h3>5. Wealth, return, annualization, and alpha</h3>
+        <p>
+            Portfolio wealth is the sum of the invested component that compounds with the index
+            and any idle cash that has not yet been deployed. Final return is visible wealth divided
+            by capital made available over time, minus one.
         </p>
         <div class="formula-box">
             Annualized return = (1 + total return)^(1 / years) - 1
         </div>
-        <p>
-            This makes all three methods directly comparable even when the full history
-            spans many decades.
-        </p>
-    </article>
-
-    <article class="method-card">
-        <h3>4. Alpha and relative advantage</h3>
-        <p>
-            Alpha is measured against DCA, which is the baseline strategy.
-            Positive alpha means the BtD approach delivered a higher annualized return
-            than DCA for the same index and full sample.
-        </p>
         <div class="formula-box">
-            Alpha = annualized return of BtD - annualized return of DCA
+            Alpha = annualized return of strategy A - annualized return of DCA
         </div>
+    </article>
+
+    <article class="method-card">
+        <h3>6. BtD theoretical vs implementable</h3>
         <p>
-            The relative-advantage chart uses the running ratio of portfolio wealth:
-            wealth of BtD divided by wealth of DCA, minus one.
+            The theoretical-versus-implementable section measures the <strong>implementation gap</strong>.
+            In the reports, that gap is shown as implementable annualized return minus theoretical
+            annualized return, so negative values mean that the live-executable rule gave back part
+            of the hindsight advantage.
         </p>
     </article>
 
     <article class="method-card">
-        <h3>5. Simulation grid</h3>
+        <h3>7. Simulation grid and consistency of advantage</h3>
         <p>
-            The simulation section compares <strong>periodic BtD</strong> and
-            <strong>periodic DCA</strong> across multiple contribution intervals and
-            investment horizons. In this configuration, the tested intervals are
-            <strong>15, 30, 45, 60, 90, 120 days</strong> and the tested
-            horizons are <strong>1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 20 years</strong>.
+            The simulation section compares periodic DCA, theoretical periodic BtD, and implementable
+            periodic BtD across multiple contribution intervals and investment horizons. In this
+            configuration, the tested intervals are <strong>15, 30, 45, 60, 90, 120 days</strong>
+            and the tested horizons are <strong>1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 20 years</strong>.
         </p>
         <p>
-            <strong>Period</strong> is the spacing between contributions, expressed in
-            days. Example: a 30-day period means new capital is added every 30 days.
-            <strong>Horizon</strong> is the total length of each simulated backtest
-            window, expressed in years. Example: a 5-year horizon means the strategy is
-            evaluated from a chosen start date through the next five years.
+            <strong>Period</strong> is the spacing between contributions, expressed in days.
+            Example: a 30-day period means new capital is added every 30 days.
+            <strong>Horizon</strong> is the total length of each simulated backtest window,
+            expressed in years. Example: a 5-year horizon means the strategy is evaluated from a
+            chosen start date through the next five years.
         </p>
         <p>
-            For each horizon, the code samples multiple evenly spaced start points over
-            the available history, runs both strategies inside each window, and then
-            aggregates the resulting annual alpha. The heatmap shows mean annual alpha:
-            values above zero favor periodic BtD; values below zero favor periodic DCA.
-        </p>
-    </article>
-
-    <article class="method-card method-card-warning">
-        <h3>6. Important interpretation note</h3>
-        <p>
-            Both BtD variants are built with <strong>ex-post minima</strong>. In other
-            words, the code identifies the lowest close only after the full segment or
-            window is known. This makes the BtD results a hindsight benchmark for dip
-            timing, not a directly live-executable rule as written.
-        </p>
-        <p>
-            The reports also exclude transaction costs, taxes, slippage, spreads, and
-            execution constraints. For that reason, the BtD results should be read as a
-            clean analytical comparison, not as a complete implementation-ready trading
-            system.
+            <strong>Win rate</strong> is the share of simulated windows where annual alpha is positive.
+            The alpha-distribution summaries report <strong>p10 / median / p90</strong>, which makes it
+            easier to see whether the apparent advantage is broad-based or concentrated in a few
+            unusually strong windows.
         </p>
     </article>
 </div>

@@ -44,7 +44,7 @@ class StrategyOutput:
 
 @dataclass(slots=True)
 class ComparisonResult:
-    """Comparison statistics between two strategy runs."""
+    """Comparison statistics between two strategy outputs."""
 
     label: str
     strategy_a_name: str
@@ -66,6 +66,7 @@ class SimulationOutput:
 
     raw_results: pd.DataFrame
     aggregated_results: pd.DataFrame
+    consistency_results: pd.DataFrame = field(default_factory=pd.DataFrame)
 
 
 @dataclass(slots=True)
@@ -79,7 +80,13 @@ class IndexAnalysisResult:
     input_data: pd.DataFrame
     dca: StrategyOutput
     btd_original: StrategyOutput | None
+    btd_original_implementable: StrategyOutput | None
     btd_periodic: StrategyOutput | None
+    btd_periodic_implementable: StrategyOutput | None
     original_vs_dca: ComparisonResult | None
+    original_implementable_vs_dca: ComparisonResult | None
+    original_implementable_vs_theoretical: ComparisonResult | None
     periodic_vs_dca: ComparisonResult | None
+    periodic_implementable_vs_dca: ComparisonResult | None
+    periodic_implementable_vs_theoretical: ComparisonResult | None
     simulation: SimulationOutput | None
