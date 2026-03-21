@@ -1,0 +1,150 @@
+project:
+  title: "Buying the Dip Analysis (Offline Validation)"
+  output_directory: "./outputs_offline/raw"
+  log_level: "INFO"
+
+data_api:
+  provider: "stooq"
+  provider_priority: ["stooq", "marketwatch", "yahoo_finance"]
+  period: "max"
+  interval: "1d"
+  timeout_seconds: 1
+  max_workers: 1
+  max_retries: 1
+  retry_backoff_seconds: 0.1
+  retry_jitter_seconds: 0.0
+  request_pause_seconds: 0.0
+  continue_on_index_error: false
+  user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36"
+
+indices:
+  - name: "Ibovespa"
+    source_mode: "api_with_cache"
+    symbol: "^BVSP"
+    provider_priority: ["stooq", "yahoo_finance"]
+    provider_symbols:
+      stooq: "^BVP"
+      yahoo_finance: "^BVSP"
+    cache_path: "./sample_cache/ibovespa.csv"
+    analysis_start_date: "1994-07-01"
+
+  - name: "S&P 500"
+    source_mode: "api_with_cache"
+    symbol: "^GSPC"
+    provider_priority: ["stooq", "marketwatch", "yahoo_finance"]
+    provider_symbols:
+      stooq: "^SPX"
+      marketwatch: "spx"
+      yahoo_finance: "^GSPC"
+    cache_path: "./sample_cache/sp500.csv"
+    analysis_start_date: "1950-01-01"
+
+  - name: "Dow Jones"
+    source_mode: "api_with_cache"
+    symbol: "^DJI"
+    provider_priority: ["stooq", "marketwatch", "yahoo_finance"]
+    provider_symbols:
+      stooq: "^DJI"
+      marketwatch: "djia"
+      yahoo_finance: "^DJI"
+    cache_path: "./sample_cache/dow_jones.csv"
+    analysis_start_date: "1950-01-01"
+
+  - name: "Nasdaq Composite"
+    source_mode: "api_with_cache"
+    symbol: "^IXIC"
+    provider_priority: ["stooq", "marketwatch", "yahoo_finance"]
+    provider_symbols:
+      stooq: "^NDQ"
+      marketwatch: "comp"
+      yahoo_finance: "^IXIC"
+    cache_path: "./sample_cache/nasdaq_composite.csv"
+    analysis_start_date: "1950-01-01"
+
+  - name: "STOXX Europe 600"
+    source_mode: "api_with_cache"
+    symbol: "^STOXX"
+    provider_priority: ["marketwatch", "yahoo_finance"]
+    provider_symbols:
+      marketwatch: "sxxp"
+      yahoo_finance: "^STOXX"
+    provider_options:
+      marketwatch:
+        instrument_type: "index"
+        country_code: "XX"
+    cache_path: "./sample_cache/stoxx_europe_600.csv"
+    analysis_start_date: "1950-01-01"
+
+  - name: "Nikkei 225"
+    source_mode: "api_with_cache"
+    symbol: "^N225"
+    provider_priority: ["stooq", "yahoo_finance"]
+    provider_symbols:
+      stooq: "^NKX"
+      yahoo_finance: "^N225"
+    cache_path: "./sample_cache/nikkei_225.csv"
+    analysis_start_date: "1950-01-01"
+
+  - name: "Shanghai Composite"
+    source_mode: "api_with_cache"
+    symbol: "000001.SS"
+    provider_priority: ["stooq", "yahoo_finance"]
+    provider_symbols:
+      stooq: "^SHC"
+      yahoo_finance: "000001.SS"
+    cache_path: "./sample_cache/shanghai_composite.csv"
+    analysis_start_date: "1950-01-01"
+
+strategies:
+  dca:
+    period: "monthly"
+    anchor: "end"
+    cash_mode: "linear"
+    contribution_amount: 1.0
+    cash_frequency: "monthly"
+
+  btd_original:
+    enabled: true
+    cash_mode: "linear"
+    contribution_amount: 1.0
+    cash_frequency: "monthly"
+
+  btd_periodic:
+    enabled: true
+    period_days: 30
+    anchor: "end"
+    cash_mode: "periodic"
+    contribution_amount: 1.0
+    cash_frequency: "monthly"
+
+simulation:
+  enabled: true
+  horizons_years: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 20]
+  contribution_intervals_days: [15, 30, 45, 60, 90, 120]
+  window_count: 5
+  anchor: "end"
+  cash_mode: "periodic"
+  contribution_amount: 1.0
+  cash_frequency: "monthly"
+  aggregations:
+    annual_alpha: ["mean", "median"]
+    final_relative_advantage: ["mean", "median"]
+
+report:
+  output_directory: "./outputs_offline/reports"
+  index_file_name: "index.html"
+  table_precision: 4
+  figure_dpi: 180
+  include_original_btd: true
+  include_periodic_btd: true
+  include_simulation: true
+  max_simulation_rows: 12
+  theme: "dark"
+  include_overview_chart: true
+  advantage_clip_percentile: 97.5
+  advantage_min_limit_pct: 0.25
+
+exports:
+  enabled: true
+  format: "csv"
+  include_input_data: false
