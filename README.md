@@ -811,9 +811,3 @@ For a GitHub repository, a practical workflow is:
 3. commit the source code and configuration;
 4. decide whether generated outputs should be committed or ignored;
 5. document any new provider or strategy extensions directly in this README.
-
----
-
-## License and ownership
-
-Add your preferred license and repository metadata before publishing the project.
